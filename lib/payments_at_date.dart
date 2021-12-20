@@ -1,12 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:odeme_hatirlatici/main.dart';
 import 'package:odeme_hatirlatici/payment.dart';
 import 'package:odeme_hatirlatici/payment_edit.dart';
 import 'package:path_provider/path_provider.dart';
+
+import 'helper_functions.dart';
 
 class PaymentsAtDateSendPage extends StatefulWidget{
   final DateTime? date; 
@@ -17,86 +18,132 @@ class PaymentsAtDateSendPage extends StatefulWidget{
   }
 }
 class PaymentEditPage extends State<PaymentsAtDateSendPage>{
-  DateTime? date;
   List<Payment> currentPayments = List.empty(growable: true);
+  DateTime? date;
   PaymentEditPage(this.date);
   @override
   void initState() {
-    currentPayments = payments.where((element) => element.date == date).toList();
+    currentPayments = queryPayments(date!);
     super.initState();
   }
- 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(date.toString()),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            onPressed: (){
-              showDialog(context: context, builder: (BuildContext context){
-                TextEditingController tecDescription = TextEditingController(text: ''), tecMonths = TextEditingController(text: '1');
-                return AlertDialog(
-                  title: const Text('Odeme Ekle'),
-                  content: 
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        TextField(
-                          controller: tecDescription,
-                          textAlign: TextAlign.center,
-                          decoration: const InputDecoration(hintText: 'Aciklama Girin'),
-                        ),
-                        TextField(
-                          controller: tecMonths,
-                          textAlign: TextAlign.center,
-                          decoration: const InputDecoration(hintText: 'Kalan Ay'),
-                          keyboardType: TextInputType.number,
-                        ),
-                        const SizedBox(height: 20,),
-                        ElevatedButton.icon(
-                          onPressed: () async{
-                            if(tecDescription.text != '' && tecMonths.text != '0'){
-                              int monthsLeft = int.parse(tecMonths.text);
-                              for(int i=0;i<int.parse(tecMonths.text);i++){
-                                payments.add(Payment(date: DateTime(date!.year, date!.month + i, date!.day), description: tecDescription.text, monthsLeft: monthsLeft--, done: null));
-                              }
-                              setState(() {                                
-                                currentPayments = payments.where((element) => element.date == date).toList();
-                              });
-                              final externalDir = await getExternalStorageDirectory();
-                              await File(externalDir!.path + "/Save.json").writeAsString(jsonEncode(payments));
-                              Navigator.pop(context);
-                            }
-                            else{
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Kontrol edin.')));
-                            }
-                        }, icon: const Icon(Icons.task_alt_outlined), label: const Text("Ok"))
-                      ],
-                    ),
-                );
-              });
-            }, 
-            icon: const Icon(Icons.add)
-          )
-        ],
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            DataTable(
-              showCheckboxColumn: false,
-              columns: 
-                const [
-                  DataColumn(label: Text('Aciklama')),
-                  DataColumn(label: Text('Kalan Ay')),
-                  DataColumn(label: Text('Tamamlandi')),
-                ],
-               rows: List.generate(currentPayments.length, (index) => getDataRow(context, currentPayments, index))
-            ),
+    return WillPopScope(
+      onWillPop: () async{
+        Navigator.of(context).push(MaterialPageRoute(builder: (context)=>const MyHomePage()));
+        return false;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(date!.day.toString()+"/"+date!.month.toString()+"/"+date!.year.toString()),
+          centerTitle: true,
+          actions: [
+            IconButton(
+              onPressed: (){
+                showDialog(context: context, builder: (BuildContext context){
+                  TextEditingController tecDescription = TextEditingController(text: ''), tecMonths = TextEditingController(text: '');
+                  String info = "";
+                  bool? unlimited;
+                  return StatefulBuilder(
+                    builder: (BuildContext context, void Function(void Function()) setState) {
+                      return AlertDialog(
+                        title: const Text('Ödeme Ekle'),
+                        content:
+                          SingleChildScrollView(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                TextField(
+                                  controller: tecDescription,
+                                  textAlign: TextAlign.center,
+                                  decoration: const InputDecoration(hintText: 'Ödeme', icon: Icon(Icons.description)),
+                                ),
+                                const Divider(height: 50,  thickness: 1,),
+                                TextField(
+                                  enabled: unlimited==null||unlimited==false,
+                                  controller: tecMonths,
+                                  textAlign: TextAlign.center,
+                                  decoration: const InputDecoration(hintText: 'Kalan Ay', icon: Icon(Icons.access_time_filled_sharp)),
+                                  keyboardType: TextInputType.number,
+                                ),
+                                const SizedBox(height: 20,),
+                                const Text('Ya da', textAlign: TextAlign.center,),
+                                CheckboxListTile(
+                                  title: const Text('Kredi Karti'),
+                                  onChanged: (bool? value) { 
+                                    setState(() {                                
+                                      unlimited = value;
+                                      if(unlimited == true){
+                                        tecMonths.text = '';
+                                      }
+                                    });
+                                   }, 
+                                   value: unlimited??false,
+                                ),
+                                const SizedBox(height: 20,),
+                                ElevatedButton.icon(
+                                  onPressed: () async{
+                                    if(tecDescription.text != ''){
+                                      int monthsLeft = -1;
+                                      if((unlimited == null || unlimited == false) && (tecMonths.text != '0' && tecMonths.text != '')) {
+                                        monthsLeft = int.parse(tecMonths.text);
+                                        for(int i=0;i<int.parse(tecMonths.text);i++){
+                                          payments.add(Payment(date: DateTime(date!.year, date!.month + i, date!.day), description: tecDescription.text, monthsLeft: monthsLeft--, done: false));
+                                        }
+                                      }
+                                      else{
+                                        payments.add(Payment(date: DateTime(date!.year, date!.month, date!.day), description: tecDescription.text, monthsLeft: monthsLeft, done: false));
+                                      }
+                                      setState(() {                                
+                                        currentPayments = queryPayments(date!);
+                                      });
+                                      final externalDir = await getExternalStorageDirectory();
+                                      await File(externalDir!.path + "/Save.json").writeAsString(jsonEncode(payments));
+                                      Navigator.of(context).push(MaterialPageRoute(builder: (context)=>PaymentsAtDateSendPage(date: DateUtils.dateOnly(date!).toLocal())));
+                                    }
+                                    else{
+                                      setState(() {
+                                        info = "Aciklama girdiginize ve kalan ayin 0 dan buyuk olduguna emin olun.";
+                                      });
+                                    }
+                                }, icon: const Icon(Icons.task_alt_outlined), label: const Text("Ok")),
+                                Opacity(child: Text(info), opacity: .5,),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                  );
+                });
+              }, 
+              icon: const Icon(Icons.add)
+            )
           ],
+        ),
+        body: Center(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Column(
+              children: [
+                if(currentPayments.isNotEmpty)
+                  DataTable(
+                    showCheckboxColumn: false,
+                    columns: 
+                      const [
+                        DataColumn(label: Text('Ödeme')),
+                        DataColumn(label: Text('Kalan Ay')),
+                        DataColumn(label: Text('Durum')),
+                      ],
+                    rows: List.generate(currentPayments.length, (index) => getDataRow(context, currentPayments, index))
+                  ),
+                if(currentPayments.isEmpty)
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(0, MediaQuery.of(context).size.height/3, 0, 0),
+                    child: const Text("Bu Tarihde bir Ödeme Girilmedi"),
+                  )
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -109,16 +156,9 @@ DataRow getDataRow(BuildContext context, List<Payment> currentPayments, int inde
       Navigator.of(context).push(MaterialPageRoute(builder: (context)=>PaymentEditPageSend(payment: currentPayments[index],)));
     },
     cells: [
-      DataCell(Text(currentPayments[index].description!)),
+      DataCell(SizedBox(width: 100, child: Text(currentPayments[index].description!))),
       DataCell(Text(currentPayments[index].monthsLeft!.toString())),
-      DataCell(Opacity(
-        opacity: .1,
-        child: Checkbox(value: done ?? false, 
-        onChanged: (bool? value) {
-          value = value; 
-        },
-        ),
-      )),
+      DataCell(Text(boolToString(done))),
     ]
   );
 }

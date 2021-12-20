@@ -9,13 +9,17 @@ import 'package:path_provider/path_provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 
+import 'helper_functions.dart';
+import 'list_payments.dart';
+
+DateTime currentDate = DateTime.now();
 List<Payment> payments = List.empty(growable: true);
 Settings settings = Settings.clear();
 void onStart(){
   WidgetsFlutterBinding.ensureInitialized();
   final service = FlutterBackgroundService();
   service.setAutoStartOnBootMode(true);
-  service.setNotificationInfo(title: 'Odeme Hatırlatıcı ', content: "Arka planda çalışıyor.");
+  service.setNotificationInfo(title: 'Ödeme Hatırlatıcı ', content: "Arka planda çalışıyor.");
   service.onDataReceived.listen((event) {
     if (event!["action"] == "setAsForeground") {
       service.setForegroundMode(true);
@@ -44,9 +48,9 @@ void setUpAlarms(){
         content: an.NotificationContent(
           id: nOfNotifs++,
           channelKey: 'basic_channel',
-          title: displayDate(payment.date!) +" Odemesi: ",
+          title: displayDate(payment.date!) +" Ödemesi: ",
           body: payment.description.toString() + ", " + payment.monthsLeft.toString()+" ay kaldi.",
-          category: an.NotificationCategory.Alarm,
+          category: an.NotificationCategory.Reminder,
           notificationLayout: an.NotificationLayout.BigText,
           wakeUpScreen: true,
           displayOnBackground: true,
@@ -152,7 +156,6 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  DateTime currentDate = DateTime.now();
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
@@ -161,66 +164,64 @@ class _MyHomePageState extends State<MyHomePage> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Odeme Hatirlatici'),
+          title: const Text('Ödeme Hatırlatıcı'),
           centerTitle: true,
         ),
         drawer: Drawer(
-          child: Container(
-            child: ListView(
-              children: [
-                DrawerHeader(
-                  child: Text(''),
-                ),
-                ListTile(
-                  leading: Icon(Icons.home),
-                  title: Text('Ana Sayfa', textAlign: TextAlign.center,),
-                  onTap: (){
-                    if(context.widget.toString() != "MyHomePage"){
-                      Navigator.pop(context);
-                      Navigator.of(context).push(MaterialPageRoute(builder: (context)=> const MyHomePage()));
-                    }
-                    else{
-                      Navigator.pop(context);
-                    }
-                  },
-                ),
-                // ListTile(
-                //   leading: Icon(Icons.list),
-                //   title: Text('Liste', textAlign: TextAlign.center,),
-                //   onTap: (){
-                //     if(context.widget.toString() != "MyHomePage"){
-                // Navigator.pop(context);
-                //       Navigator.of(context).push(MaterialPageRoute(builder: (context)=> const MyHomePage()));
-                //     }
-                //     else{
-                //       Navigator.pop(context);
-                //     }
-                //   },
-                // ),
-                ListTile(
-                  leading: const Icon(Icons.settings),
-                  title: const Text('Ayarlar', textAlign: TextAlign.center,),
-                  onTap: (){
-                    if(context.widget.toString() != "SettingsPageSend"){
-                      Navigator.pop(context);
-                      Navigator.of(context).push(MaterialPageRoute(builder: (context)=> const SettingsPageSend()));
-                    }
-                    else{
-                      Navigator.pop(context);
-                    }
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.exit_to_app),
-                  title: const Text('Cikis Yap', textAlign: TextAlign.center,),
-                  onTap: () async{
-                    FlutterBackgroundService().sendData({"action": "stopService"});
-                    await Future.doWhile(() => FlutterBackgroundService().isServiceRunning());
-                    exit(0);
-                  },
-                )
-              ],
-            ),
+          child: ListView(
+            children: [
+              const DrawerHeader(
+                child: Image(image: AssetImage('assets/logo.png'),),
+              ),
+              ListTile(
+                leading: const Icon(Icons.home),
+                title: const Text('Ana Sayfa', textAlign: TextAlign.center,),
+                onTap: (){
+                  if(context.widget.toString() != "MyHomePage"){
+                    Navigator.pop(context);
+                    Navigator.of(context).push(MaterialPageRoute(builder: (context)=> const MyHomePage()));
+                  }
+                  else{
+                    Navigator.pop(context);
+                  }
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.list),
+                title: const Text('Ödemeleri Listele', textAlign: TextAlign.center,),
+                onTap: (){
+                  if(context.widget.toString() != "ListPaymentsSendPage"){
+                    Navigator.pop(context);
+                    Navigator.of(context).push(MaterialPageRoute(builder: (context)=> const ListPaymentsSendPage()));
+                  }
+                  else{
+                    Navigator.pop(context);
+                  }
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.settings),
+                title: const Text('Ayarlar', textAlign: TextAlign.center,),
+                onTap: (){
+                  if(context.widget.toString() != "SettingsPageSend"){
+                    Navigator.pop(context);
+                    Navigator.of(context).push(MaterialPageRoute(builder: (context)=> const SettingsPageSend()));
+                  }
+                  else{
+                    Navigator.pop(context);
+                  }
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.exit_to_app),
+                title: const Text('Cikis Yap', textAlign: TextAlign.center,),
+                onTap: () async{
+                  FlutterBackgroundService().sendData({"action": "stopService"});
+                  await Future.doWhile(() => FlutterBackgroundService().isServiceRunning());
+                  exit(0);
+                },
+              )
+            ],
           ),
         ),
         body: Center(
@@ -247,7 +248,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   Navigator.of(context).push(MaterialPageRoute(builder: (context)=>PaymentsAtDateSendPage(date: DateUtils.dateOnly(date).toLocal())));
                 },
                 holidayPredicate: (DateTime date){
-                  return payments.any((element) => (element.date == DateUtils.dateOnly(date).toLocal()));
+                  return dateValid(DateUtils.dateOnly(date).toLocal());
                 },
                 headerStyle: const HeaderStyle(titleCentered: true),
                 calendarStyle: CalendarStyle(
@@ -275,11 +276,7 @@ class _MyHomePageState extends State<MyHomePage> {
             ],
           ),
         ),
-        
       ),
     );
   }
-}
-String displayDate(DateTime date){
-  return date.day.toString()+"/"+date.month.toString()+"/"+date.year.toString();
 }

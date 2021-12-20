@@ -27,6 +27,7 @@ class PaymentEditPage extends State<PaymentEditPageSend>{
     tecDescription = TextEditingController(text: payment?.description);
     tecMonths = TextEditingController(text: payment?.monthsLeft.toString());
     done = payment?.done;
+    super.initState();
   }
   int findIdx(){
     for(int i=0;i<payments.length;i++){
@@ -37,7 +38,10 @@ class PaymentEditPage extends State<PaymentEditPageSend>{
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(),
+      appBar: AppBar(
+        title: Text(payment!.description!),
+        centerTitle: true,
+      ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -64,16 +68,16 @@ class PaymentEditPage extends State<PaymentEditPageSend>{
             const SizedBox(height: 20,),
             ElevatedButton.icon(
               onPressed: () async{
-                  int i = findIdx();
-                  if(tecMonths.text =='0'){
-                    payments[i] = Payment(description: tecDescription.text==''?payments[i].description:tecDescription.text, monthsLeft: payments[i].monthsLeft, done: done, date: payments[i].date);
-                  }
-                  else{
-                    updateMonths(i);
-                  }
-                  final externalDir = await getExternalStorageDirectory();
-                  await File(externalDir!.path + "/Save.json").writeAsString(jsonEncode(payments));
-                  Navigator.pop(context);
+                int i = findIdx();
+                if(tecMonths.text =='0'){
+                  payments[i] = Payment(description: tecDescription.text==''?payments[i].description:tecDescription.text, monthsLeft: payments[i].monthsLeft, done: done, date: payments[i].date);
+                }
+                else if(int.tryParse(tecMonths.text) != null){
+                  updateMonths(i);
+                }
+                final externalDir = await getExternalStorageDirectory();
+                await File(externalDir!.path + "/Save.json").writeAsString(jsonEncode(payments));
+                Navigator.of(context).push(MaterialPageRoute(builder: (context)=>PaymentsAtDateSendPage(date: DateUtils.dateOnly(payment!.date!).toLocal())));
             }, icon: const Icon(Icons.task_alt_outlined), label: const Text("Ok"))
           ],
         ),
@@ -81,13 +85,14 @@ class PaymentEditPage extends State<PaymentEditPageSend>{
     );
   }
   void updateMonths(int idx) {
-    int end = idx + payment!.monthsLeft!;
-    payments.removeRange(idx, end);
+    List<Payment> range = payments.getRange(idx+1, idx + payment!.monthsLeft!).toList();
+    payments.removeRange(idx, idx + payment!.monthsLeft!);
+    payments.add(Payment(date: payment!.date, description: payment!.description, monthsLeft: int.parse(tecMonths.text), done: done));
     List<Payment> inner = List.empty(growable: true);
-    int cnt = 0;
-    for(int i = int.parse((tecMonths.text));i>0;i--){
-      inner.add(Payment(description: payment!.description, date: DateTime(payment!.date!.year, payment!.date!.month + cnt++, payment!.date!.day) , monthsLeft: i, done: payment!.done));
+    int cnt = 1;
+    for(int i = 0;i<int.parse((tecMonths.text));i++){
+      inner.add(Payment(description: payment!.description, date: DateTime(payment!.date!.year, payment!.date!.month + cnt++, payment!.date!.day) , monthsLeft: i, done: i<range.length?range[i].done:false));
     }
-    payments.insertAll(idx, inner.toList());
+    payments.insertAll(idx+1, inner.toList());
   }
 }
