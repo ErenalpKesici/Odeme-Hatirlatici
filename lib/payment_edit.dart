@@ -8,6 +8,8 @@ import 'package:odeme_hatirlatici/payment.dart';
 import 'package:odeme_hatirlatici/payments_at_date.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'helper_functions.dart';
+
 class PaymentEditPageSend extends StatefulWidget{
   final Payment? payment;
   const PaymentEditPageSend({Key? key, @required this.payment}) : super(key: key);
@@ -69,14 +71,14 @@ class PaymentEditPage extends State<PaymentEditPageSend>{
             ElevatedButton.icon(
               onPressed: () async{
                 int i = findIdx();
-                if(tecMonths.text =='0'){
+                if(tecMonths.text =='0' || payment!.monthsLeft! < 0){
                   payments[i] = Payment(description: tecDescription.text==''?payments[i].description:tecDescription.text, monthsLeft: payments[i].monthsLeft, done: done, date: payments[i].date);
+                  print(payments[i]);
                 }
                 else if(int.tryParse(tecMonths.text) != null){
                   updateMonths(i);
                 }
-                final externalDir = await getExternalStorageDirectory();
-                await File(externalDir!.path + "/Save.json").writeAsString(jsonEncode(payments));
+                await savePayments(context);
                 Navigator.of(context).push(MaterialPageRoute(builder: (context)=>PaymentsAtDateSendPage(date: DateUtils.dateOnly(payment!.date!).toLocal())));
             }, icon: const Icon(Icons.task_alt_outlined), label: const Text("Ok"))
           ],

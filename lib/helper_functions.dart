@@ -1,6 +1,12 @@
 
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:flutter/material.dart';
 import 'package:odeme_hatirlatici/main.dart';
 import 'package:odeme_hatirlatici/payment.dart';
+import 'package:odeme_hatirlatici/payments_at_date.dart';
+import 'package:path_provider/path_provider.dart';
 
 String boolToString(bool? bool){
   if(bool == null || !bool)return'Ödenmedi';
@@ -26,4 +32,8 @@ bool dateValid(DateTime date){
     }
   }
   return false;
+}
+Future<void> savePayments(BuildContext context) async {
+  final externalDir = await getExternalStorageDirectory();
+  await File(externalDir!.path + "/Save.json").writeAsString(jsonEncode(payments));
 }

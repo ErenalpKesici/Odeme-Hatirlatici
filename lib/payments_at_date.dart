@@ -97,8 +97,7 @@ class PaymentEditPage extends State<PaymentsAtDateSendPage>{
                                       setState(() {                                
                                         currentPayments = queryPayments(date!);
                                       });
-                                      final externalDir = await getExternalStorageDirectory();
-                                      await File(externalDir!.path + "/Save.json").writeAsString(jsonEncode(payments));
+                                      await savePayments(context);
                                       Navigator.of(context).push(MaterialPageRoute(builder: (context)=>PaymentsAtDateSendPage(date: DateUtils.dateOnly(date!).toLocal())));
                                     }
                                     else{
@@ -157,7 +156,7 @@ DataRow getDataRow(BuildContext context, List<Payment> currentPayments, int inde
     },
     cells: [
       DataCell(SizedBox(width: 100, child: Text(currentPayments[index].description!))),
-      DataCell(Text(currentPayments[index].monthsLeft!.toString())),
+      DataCell(Text(currentPayments[index].monthsLeft! < 0?'Kredi':currentPayments[index].monthsLeft!.toString())),
       DataCell(Text(boolToString(done))),
     ]
   );

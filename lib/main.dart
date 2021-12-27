@@ -36,9 +36,9 @@ void onStart(){
 void setUpAlarms(){
   int nOfNotifs = 0;
   for(Payment payment in payments){
-    if(DateUtils.dateOnly(payment.date!).toLocal() == DateUtils.dateOnly(DateTime.now()).toLocal()){
+    if(payment.done == false && DateUtils.dateOnly(payment.date!).toLocal() == DateUtils.dateOnly(DateTime.now()).toLocal()){
       DateTime alarmDate = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day, settings.time!.hour, settings.time!.minute);
-      print(alarmDate);
+      print(payment.toString()+alarmDate.toString());
       an.AwesomeNotifications().createNotification(
         schedule: an.NotificationCalendar.fromDate(date: alarmDate, allowWhileIdle: true),
         actionButtons: [
@@ -48,8 +48,8 @@ void setUpAlarms(){
         content: an.NotificationContent(
           id: nOfNotifs++,
           channelKey: 'basic_channel',
-          title: displayDate(payment.date!) +" Ödemesi: ",
-          body: payment.description.toString() + ", " + payment.monthsLeft.toString()+" ay kaldi.",
+          title: displayDate(payment.date!) + (payment.monthsLeft! < 0?' Kredi Kart':'') +" Ödemesi: ",
+          body: payment.description.toString(),
           category: an.NotificationCategory.Reminder,
           notificationLayout: an.NotificationLayout.BigText,
           wakeUpScreen: true,
