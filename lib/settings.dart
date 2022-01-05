@@ -5,6 +5,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'AuthenticationWrapper.dart';
 import 'main.dart';
 
 class Settings{
@@ -70,6 +71,10 @@ class SettingsPage extends State<SettingsPageSend>{
                 }, 
               ),
             ),
+            ElevatedButton.icon(onPressed: () async{
+              runApp(const MyApp());
+              Navigator.of(context).push(MaterialPageRoute(builder: (context)=>AuthenticationWrapper()));
+            }, icon: Icon(Icons.import_export), label: Text("Backup/Restore"))
           ],
         ),
       ),

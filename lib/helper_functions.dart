@@ -28,6 +28,7 @@ List<Payment> queryPayments(DateTime date){
 bool dateValid(DateTime date){
   for(Payment payment in payments){
     if((payment.monthsLeft == -1 && payment.date!.day == date.day) || payment.date == date){
+      print(payment.date.toString() +" and " + date.toString());
       return true;
     }
   }

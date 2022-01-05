@@ -1,14 +1,18 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:awesome_notifications/awesome_notifications.dart' as an;
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:odeme_hatirlatici/payments_at_date.dart';
 import 'package:odeme_hatirlatici/payment.dart';
 import 'package:odeme_hatirlatici/settings.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 
+import 'AuthenticationServices.dart';
 import 'helper_functions.dart';
 import 'list_payments.dart';
 
@@ -59,26 +63,10 @@ void setUpAlarms(){
     }
   }
 }
-void main() async{
-  WidgetsFlutterBinding.ensureInitialized();
-  await FlutterBackgroundService.initialize(onStart);
-  an.AwesomeNotifications().initialize(
-    'resource://raw/payment',
-    [
-      an.NotificationChannel(
-        channelKey: 'basic_channel',
-        channelName: 'Basic notifications',
-        channelDescription: 'Notification channel for basic tests',
-        defaultColor: Colors.green,
-        enableLights: true,
-        ledColor: Colors.red,
-        enableVibration: false,
-      )
-    ]
-  );
-  final externalDir = await getExternalStorageDirectory();
-  if(await File(externalDir!.path +'/Save.json').exists() && await File(externalDir.path+"/Save.json").readAsString() != ""){
+Future<void> readPayments(Directory externalDir) async{
+  if(await File(externalDir.path +'/Save.json').exists() && await File(externalDir.path+"/Save.json").readAsString() != ""){
     List<dynamic> paymentsRead = jsonDecode(await File(externalDir.path+"/Save.json").readAsString());
+    payments = List.empty(growable: true);
     for(var itm in paymentsRead){
       Payment tmp = Payment.clear();
       Map<String, dynamic> readSave = Map<String, dynamic>.from(itm);
@@ -104,6 +92,27 @@ void main() async{
   else{
     await File(externalDir.path +'/Save.json').create();
   }
+}
+void main() async{
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  await FlutterBackgroundService.initialize(onStart);
+  an.AwesomeNotifications().initialize(
+    'resource://raw/payment',
+    [
+      an.NotificationChannel(
+        channelKey: 'basic_channel',
+        channelName: 'Basic notifications',
+        channelDescription: 'Notification channel for basic tests',
+        defaultColor: Colors.green,
+        enableLights: true,
+        ledColor: Colors.red,
+        enableVibration: false,
+      )
+    ]
+  );
+  final externalDir = await getExternalStorageDirectory();
+  await readPayments(externalDir!);
   if(await File(externalDir.path +'/Settings.json').exists() && await File(externalDir.path+"/Settings.json").readAsString() != ""){
     print(await File(externalDir.path+"/Settings.json").readAsString());
     print(jsonDecode(await File(externalDir.path+"/Settings.json").readAsString()).runtimeType);
@@ -137,14 +146,24 @@ class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.green,
-        brightness: Brightness.dark,
-        appBarTheme: const AppBarTheme(color: Colors.green),
+    return MultiProvider(
+      providers: [
+        Provider<AuthenticationServices>(
+          create: (_) => AuthenticationServices(FirebaseAuth.instance),
+        ),
+        StreamProvider(
+          create: (context) => context.read<AuthenticationServices>().authStateChanges, initialData: null,
+        )
+      ],
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          primarySwatch: Colors.green,
+          brightness: Brightness.dark,
+          appBarTheme: const AppBarTheme(color: Colors.green),
+        ),
+        home: const MyHomePage(),
       ),
-      home: const MyHomePage(),
     );
   }
 }

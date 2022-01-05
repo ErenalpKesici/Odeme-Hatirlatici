@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "208991022007",
+    "project_id": "odeme-hatirlatici",
+    "storage_bucket": "odeme-hatirlatici.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:208991022007:android:618184fa480d727d3b9632",
+        "android_client_info": {
+          "package_name": "com.example.odeme_hatirlatici"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "208991022007-4i54kecfphpjvvicurhpkb7tr630psiq.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.odeme_hatirlatici",
+            "certificate_hash": "5f2a7521c3dad1ff81f86c6ac98628fa5a3b6e04"
+          }
+        },
+        {
+          "client_id": "208991022007-scqnaggpih46ffkq9qjgv3h1hbjjbj0k.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBEA1g5We_b6kqlqfj75hM-MfFXtMU1qx4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "208991022007-scqnaggpih46ffkq9qjgv3h1hbjjbj0k.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
