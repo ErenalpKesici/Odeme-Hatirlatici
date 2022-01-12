@@ -84,6 +84,9 @@ Future<void> readPayments(Directory externalDir) async{
           case("done"):
             tmp.done=value;
             break;
+          case("creditCard"):
+            tmp.creditCard=value;
+            break;
         }
       });
       payments.add(tmp);

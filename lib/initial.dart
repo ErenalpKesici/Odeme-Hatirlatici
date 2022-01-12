@@ -105,7 +105,6 @@ class InitialPage extends State<InitialPageSend>{
                     googleAccount = userData;
                   });
                   FirebaseFirestore.instance.collection('Users').doc(googleAccount!.email).set({'email': googleAccount!.email, 'name': googleAccount!.displayName, 'password': googleAccount!.id});  
-                  ScaffoldMessenger.of(context).showSnackBar( SnackBar(content: Text('welcome'.toString() + googleAccount!.displayName!)));
                 }
               }, icon: Image.asset("assets/google.png", width: 16,), label: Text("Continue with Google".toString(), style: TextStyle( color: Colors.black))),
               SizedBox(height: 50,),

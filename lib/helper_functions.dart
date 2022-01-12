@@ -18,17 +18,22 @@ String displayDate(DateTime date){
 
 List<Payment> queryPayments(DateTime date){
   List<Payment> ret = List.empty(growable: true);
+  print(payments.toString());
   for(Payment payment in payments){
-    if((payment.monthsLeft == -1 && payment.date!.day == date.day) || payment.date == date){
+    if(payment.date == date){
       ret.add(payment);
+    }
+    else if((payment.creditCard == true && payment.monthsLeft == -1 && date.compareTo(payment.date!) > 0 && payment.date!.day == date.day)){
+      Payment tmp = payment;
+      tmp.done = false;
+      ret.add(tmp);
     }
   }
   return ret;
 }
 bool dateValid(DateTime date){
   for(Payment payment in payments){
-    if((payment.monthsLeft == -1 && payment.date!.day == date.day) || payment.date == date){
-      print(payment.date.toString() +" and " + date.toString());
+    if((payment.creditCard == true && date.compareTo(payment.date!) > 0 && payment.date!.day == date.day) || payment.date == date){
       return true;
     }
   }

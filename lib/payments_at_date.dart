@@ -43,7 +43,7 @@ class PaymentEditPage extends State<PaymentsAtDateSendPage>{
                 showDialog(context: context, builder: (BuildContext context){
                   TextEditingController tecDescription = TextEditingController(text: ''), tecMonths = TextEditingController(text: '');
                   String info = "";
-                  bool? unlimited;
+                  bool? creditCard;
                   return StatefulBuilder(
                     builder: (BuildContext context, void Function(void Function()) setState) {
                       return AlertDialog(
@@ -60,7 +60,7 @@ class PaymentEditPage extends State<PaymentsAtDateSendPage>{
                                 ),
                                 const Divider(height: 50,  thickness: 1,),
                                 TextField(
-                                  enabled: unlimited==null||unlimited==false,
+                                  enabled: creditCard==null||creditCard==false,
                                   controller: tecMonths,
                                   textAlign: TextAlign.center,
                                   decoration: const InputDecoration(hintText: 'Kalan Ay', icon: Icon(Icons.access_time_filled_sharp)),
@@ -72,27 +72,27 @@ class PaymentEditPage extends State<PaymentsAtDateSendPage>{
                                   title: const Text('Kredi Karti'),
                                   onChanged: (bool? value) { 
                                     setState(() {                                
-                                      unlimited = value;
-                                      if(unlimited == true){
+                                      creditCard = value;
+                                      if(creditCard == true){
                                         tecMonths.text = '';
                                       }
                                     });
                                    }, 
-                                   value: unlimited??false,
+                                   value: creditCard??false,
                                 ),
                                 const SizedBox(height: 20,),
                                 ElevatedButton.icon(
                                   onPressed: () async{
                                     if(tecDescription.text != ''){
                                       int monthsLeft = -1;
-                                      if((unlimited == null || unlimited == false) && (tecMonths.text != '0' && tecMonths.text != '')) {
+                                      if((creditCard == null || creditCard == false) && (tecMonths.text != '0' && tecMonths.text != '')) {
                                         monthsLeft = int.parse(tecMonths.text);
                                         for(int i=0;i<int.parse(tecMonths.text);i++){
-                                          payments.add(Payment(date: DateTime(date!.year, date!.month + i, date!.day), description: tecDescription.text, monthsLeft: monthsLeft--, done: false));
+                                          payments.add(Payment(date: DateTime(date!.year, date!.month + i, date!.day), description: tecDescription.text, monthsLeft: monthsLeft--, done: false, creditCard: false));
                                         }
                                       }
-                                      else{
-                                        payments.add(Payment(date: DateTime(date!.year, date!.month, date!.day), description: tecDescription.text, monthsLeft: monthsLeft, done: false));
+                                      else{//credit card
+                                        payments.add(Payment(date: DateTime(date!.year, date!.month, date!.day), description: tecDescription.text, monthsLeft: monthsLeft, done: false, creditCard: true));
                                       }
                                       setState(() {                                
                                         currentPayments = queryPayments(date!);
@@ -133,7 +133,7 @@ class PaymentEditPage extends State<PaymentsAtDateSendPage>{
                         DataColumn(label: Text('Kalan Ay')),
                         DataColumn(label: Text('Durum')),
                       ],
-                    rows: List.generate(currentPayments.length, (index) => getDataRow(context, currentPayments, index))
+                    rows: List.generate(currentPayments.length, (index) => getDataRow(context, currentPayments, date!,index))
                   ),
                 if(currentPayments.isEmpty)
                   Padding(
@@ -148,15 +148,16 @@ class PaymentEditPage extends State<PaymentsAtDateSendPage>{
     );
   }
 }
-DataRow getDataRow(BuildContext context, List<Payment> currentPayments, int index){
+DataRow getDataRow(BuildContext context, List<Payment> currentPayments, DateTime date, int index){
+  print(currentPayments.toString());
   bool? done = currentPayments[index].done;
   return DataRow(
     onSelectChanged: (bool? selected){
-      Navigator.of(context).push(MaterialPageRoute(builder: (context)=>PaymentEditPageSend(payment: currentPayments[index],)));
+      Navigator.of(context).push(MaterialPageRoute(builder: (context)=>PaymentEditPageSend(payment: currentPayments[index], date: date,)));
     },
     cells: [
       DataCell(SizedBox(width: 100, child: Text(currentPayments[index].description!))),
-      DataCell(Text(currentPayments[index].monthsLeft! < 0?'Kredi':currentPayments[index].monthsLeft!.toString())),
+      DataCell(Text(currentPayments[index].creditCard!?'Kredi Kart':currentPayments[index].monthsLeft!.toString())),
       DataCell(Text(boolToString(done))),
     ]
   );
