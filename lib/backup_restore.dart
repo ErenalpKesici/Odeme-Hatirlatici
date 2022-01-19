@@ -1,14 +1,16 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:odeme_hatirlatici/preferences.dart';
 import 'package:odeme_hatirlatici/user.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/src/provider.dart';
-
 import 'AuthenticationServices.dart';
 import 'initial.dart';
 import 'main.dart';
 
+Preferences? pref;
 class BackupRestorePageSend extends StatefulWidget {
   late Users? user;
   BackupRestorePageSend({@required this.user});
@@ -19,20 +21,25 @@ class BackupRestorePageSend extends StatefulWidget {
 }
 class BackupRestorePage extends State<BackupRestorePageSend>{
   Users? user;
-  BackupRestorePage(@required this.user);
+  String backupFrequency = pref==null?'Day':pref!.backupFrequency!;
+  BackupRestorePage(this.user);
   @override
   void initState() {
-       super.initState();
+    if(pref!=null) {
+      savePrefs();
+    }
+    super.initState();
+  }
+  void savePrefs() async{
+    final externalDir = await getExternalStorageDirectory();
+    await File(externalDir!.path + "/Preferences.json").writeAsString(jsonEncode(Preferences(user: user!.email, backupFrequency: backupFrequency)));
   }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: FittedBox(child: Text('Backup/Restore')),
+        title: const FittedBox(child: Text('Backup/Restore')),
         centerTitle: true, 
-        actions: [      
-            
-        ],  
       ),
       body: Center(
         child: Column(
@@ -41,6 +48,29 @@ class BackupRestorePage extends State<BackupRestorePageSend>{
             Padding(
               padding: const EdgeInsets.all(32.0),
               child: Text("Signed in Account: " + user!.email!),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: ListTile(
+                leading: const Icon(Icons.security_rounded),
+                title: const Text("Automatically backup every ", textAlign: TextAlign.center,),
+                trailing: DropdownButton<String>(
+                  alignment: AlignmentDirectional.center,
+                  value: backupFrequency,
+                  onChanged: (String? newValue) async{
+                    setState(() {
+                      backupFrequency = newValue!;
+                    });
+                    savePrefs();
+                  },
+                  items: <String>['Day', 'Week', 'Month'].map<DropdownMenuItem<String>>((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                )
+              ),
             ),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -54,10 +84,8 @@ class BackupRestorePage extends State<BackupRestorePageSend>{
                       String json = doc.get('save');
                       print(json);
                       await File(externalDir!.path + "/Save.json").writeAsString(json);
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(backgroundColor: Theme.of(context).
-                      backgroundColor, content: Text('Successfully restored from '  + user!.email!)));
-                      await readPayments(externalDir);
-                      Navigator.of(context).push(MaterialPageRoute(builder: (context)=> const MyHomePage()));
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(backgroundColor: Theme.of(context).backgroundColor, content: Text('Successfully restored from '  + user!.email!)));
+                      Navigator.of(context).push(MaterialPageRoute(builder: (context)=>MyHomePage()));
                     }catch(e){
                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(backgroundColor: Theme.of(context).backgroundColor, content: Text('Error from account: '  + user!.email!+" - " + e.toString())));
                     }
@@ -76,10 +104,11 @@ class BackupRestorePage extends State<BackupRestorePageSend>{
                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(backgroundColor: Theme.of(context).backgroundColor, content: const Text('Cannot backup when there is nothing to back up ')));
                       }
                       else{
-                        FirebaseFirestore.instance.collection('Users').doc(user!.email).update({'save': readSave});
+                        FirebaseFirestore.instance.collection('Users').doc(user!.email).update({'dateUpdated': DateTime.now().toString(), 'save': readSave});
                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(backgroundColor: Theme.of(context).backgroundColor, content: Text('Successfully backed up to ' + user!.email!)));
                         Navigator.of(context).push(MaterialPageRoute(builder: (context)=>const MyHomePage()));
                       }
+                      savePrefs();
                     },
                     label: const Text("Backup")
                   ),

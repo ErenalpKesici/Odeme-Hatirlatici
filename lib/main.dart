@@ -10,8 +10,6 @@ import 'package:odeme_hatirlatici/settings.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'package:flutter_background_service/flutter_background_service.dart';
-
 import 'AuthenticationServices.dart';
 import 'helper_functions.dart';
 import 'list_payments.dart';
@@ -19,24 +17,6 @@ import 'list_payments.dart';
 DateTime currentDate = DateTime.now();
 List<Payment> payments = List.empty(growable: true);
 Settings settings = Settings.clear();
-void onStart(){
-  WidgetsFlutterBinding.ensureInitialized();
-  final service = FlutterBackgroundService();
-  service.setAutoStartOnBootMode(true);
-  service.setNotificationInfo(title: 'Ödeme Hatırlatıcı ', content: "Arka planda çalışıyor.");
-  service.onDataReceived.listen((event) {
-    if (event!["action"] == "setAsForeground") {
-      service.setForegroundMode(true);
-      return;
-    }
-    if (event["action"] == "setAsBackground") {
-      service.setForegroundMode(false);
-    }
-    if (event["action"] == "stopService") {
-      service.stopBackgroundService();
-    }
-  });
-}
 void setUpAlarms(){
   int nOfNotifs = 0;
   for(Payment payment in payments){
@@ -99,7 +79,6 @@ Future<void> readPayments(Directory externalDir) async{
 void main() async{
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  await FlutterBackgroundService.initialize(onStart);
   an.AwesomeNotifications().initialize(
     'resource://raw/payment',
     [
@@ -179,6 +158,11 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   @override
+  void initState() {
+    tryBackup();
+    super.initState();
+  }
+  @override
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: ()async{
@@ -238,8 +222,6 @@ class _MyHomePageState extends State<MyHomePage> {
                 leading: const Icon(Icons.exit_to_app),
                 title: const Text('Cikis Yap', textAlign: TextAlign.center,),
                 onTap: () async{
-                  FlutterBackgroundService().sendData({"action": "stopService"});
-                  await Future.doWhile(() => FlutterBackgroundService().isServiceRunning());
                   exit(0);
                 },
               )
